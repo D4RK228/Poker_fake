@@ -1,4 +1,4 @@
-```
+```python
 def straight_flash(player, data_cards, k_player):
     data_comb = []   #комбинация игрока
     data_comb_n = []    #номиналы комбинции
