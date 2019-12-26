@@ -1,0 +1,409 @@
+k = int(input("Введите количество игроков: "))
+data_chips = [1000]*(k + 1)
+print(data_chips)
+data_chips[0] = 0
+blind = 10
+dealer_pos = k
+data_ingame = [1]*(k+1)
+data_ingame[0] = 0
+f1 = False
+g = 0
+
+
+while data_chips.count(0) < k:
+    data_bets = []
+    data_ingame = [0] * (k + 1)
+    for i in range(1, k + 1):
+        if data_chips[i] > 0:
+            data_ingame[i] = 1
+    data_pots = []
+    for i in range(k + 1):
+        data_pots.append([])
+        for j in range(k + 1):
+            data_pots[i].append(0)
+    data_pots[0][0] = -1
+    g += 1
+    data_cards = new_hand(k)
+    print(data_cards)
+    f = False
+    while f == False:
+        dealer_pos += 1
+        if dealer_pos == k + 1:       #Передаем дилера следующему игроку
+            dealer_pos = 1
+        if data_chips[dealer_pos] != 0:
+            f = True
+    data_bets = [0]*(k+1)
+    f = False
+    next_move = dealer_pos
+    
+    while f == False:                 #Ставим малый блайнд
+        next_move = next_move + 1
+        if next_move == k + 1:       
+            next_move = 1
+        if data_chips[next_move] != 0:
+            data_bets[next_move] = blind
+            if data_chips[next_move] < blind:
+                data_bets[next_move] = data_chips[next_move]
+                data_chips[next_move] = 0
+                data_ingame[next_move] = 2 
+            else:
+                data_chips[next_move] -= blind
+            f = True
+            
+    f = False
+    while f == False:                 #Ставим большой блайнд
+        next_move = next_move + 1
+        if next_move == k + 1:       
+            next_move = 1
+        if data_chips[next_move] != 0:
+            data_bets[next_move] = blind*2
+            if data_chips[next_move] < blind*2:
+                data_bets[next_move] = data_chips[next_move]
+                data_chips[next_move] = 0
+                data_ingame[next_move] = 2
+            else:
+                data_chips[next_move] -= blind*2
+            f = True
+    
+    bet = 20                          #Разница в ставках
+    prev_bet = 20                     #Предыдущая ставка
+    f = False                         #Цикл ставок, пока все не уровняют
+    f1 = False
+    s = 0
+    s_players = data_ingame.count(1)
+    
+    while f == False and f1 == False:
+        f = True
+        next_move = next_move + 1
+        if next_move == k + 1:       
+            next_move = 1
+        if data_ingame[next_move] == 1:
+            s += 1
+            if next_move != 1:
+                t = bot_preflop(data_cards[next_move*2 - 2], data_cards[next_move*2-1], bet, prev_bet, data_chips[next_move], data_bets[next_move])
+                if t == 0:
+                    data_ingame[next_move] = 0
+                else:
+                    data_chips[next_move] -= (t - data_bets[next_move])
+                    if t - prev_bet > 0:
+                        if bet <= t - prev_bet:
+                            bet = t - prev_bet
+                        prev_bet = t
+                    data_bets[next_move] = t
+                    if data_chips[next_move] == 0:
+                        data_ingame[next_move] = 2
+                print("pevbet", prev_bet)
+                print(next_move, t, data_chips[next_move], data_bets[next_move])
+                print(data_ingame)
+            if next_move == 1:
+                print("у вас имеется ", data_chips[next_move], " фишек. Чтобы уровнять, нужно еще поствить ", prev_bet - data_bets[1], ". Поднимать можно от ", bet + prev_bet, " фишек")
+                t = int(input("Введите ставку "))
+                if t == 0:
+                    data_ingame[next_move] = 0
+                else:
+                    data_chips[next_move] -= t
+                    if t + data_bets[next_move] - prev_bet > 0:
+                        if t + data_bets[next_move] - prev_bet >= bet:
+                            bet = t + data_bets[next_move] - prev_bet
+                        prev_bet = t + data_bets[next_move]
+                    data_bets[next_move] += t
+                    if data_chips[next_move] == 0:
+                        data_ingame[next_move] = 2
+            
+        temp = []
+        for i in range(1, k+1):
+            if data_ingame[i] == 1:
+                temp.append(data_bets[i])
+        temp.sort()
+        if len(temp) > 1:
+            if temp[0] != temp[-1] or temp[0] < prev_bet or temp[-1] < prev_bet:
+                f = False
+        if len(temp) == 1 :
+            if temp[0] < prev_bet:
+                f = False
+        if s < s_players:
+            f = False
+        if data_ingame.count(1) < 2:
+            if len(temp) > 0:
+                if temp[0] == prev_bet:
+                    f1 = True
+        
+                
+    print(data_ingame)
+    print(data_chips)
+    print(data_bets)
+    data_pots = exchange(data_pots, data_bets, data_ingame, k)
+    print(data_pots)
+    ################################ FLOP ###############################
+    print("---------------FLOP----------------")
+    print(data_cards[k*2], data_cards[k*2 + 1], data_cards[k*2 + 2])
+    
+    for i in range(1, k + 1):
+        data_ingame[i] = data_pots[0][i]
+    
+    data_flop = []
+    data_flop.append(data_cards[k*2])
+    data_flop.append(data_cards[k*2 + 1])
+    data_flop.append(data_cards[k*2 + 2])
+    
+    print('Ваша вероятность победы: ', win_prob_flop(k, data_cards, data_ingame))
+    prev_bet = 0
+    bet = blind*2
+    f = False
+    next_move = dealer_pos
+    data_bets = [0]*(k + 1)
+    s = 0
+    s_players = data_ingame.count(1)
+    while f == False and f1 == False:
+        f = True
+        next_move = next_move + 1
+        if next_move == k + 1:       
+            next_move = 1
+        if data_ingame[next_move] == 1:
+            s += 1
+            if next_move != 1:
+                t = bot_flop(data_cards[next_move*2 - 2], data_cards[next_move*2-1], data_flop, bet, prev_bet, data_chips[next_move], data_bets[next_move])
+                if t == 0 and prev_bet != 0:
+                    data_ingame[next_move] = 0
+                else:
+                    data_chips[next_move] -= (t - data_bets[next_move])
+                    if t - prev_bet > 0:
+                        if t - prev_bet >= bet:
+                            bet = t - prev_bet
+                        prev_bet = t
+                    data_bets[next_move] = t
+                    if data_chips[next_move] == 0:
+                        data_ingame[next_move] = 2
+                print(next_move, t, data_chips[next_move], data_bets[next_move])
+                print(data_ingame)
+            if next_move == 1:
+                print("у вас имеется ", data_chips[next_move], " фишек. Чтобы уровнять, нужно еще поствить ", prev_bet - data_bets[1], ". Поднимать можно от ", bet + prev_bet, " фишек")
+                t = int(input("Введите ставку "))
+                if t == 0 and prev_bet != 0:
+                    data_ingame[next_move] = 0
+                else:
+                    data_chips[next_move] -= t
+                    if t + data_bets[next_move] - prev_bet > 0:
+                        if bet <= t + data_bets[next_move] - prev_bet:
+                            bet = t + data_bets[next_move] - prev_bet
+                        prev_bet = t + data_bets[next_move]
+                    data_bets[next_move] += t
+                    if data_chips[next_move] == 0:
+                        data_ingame[next_move] = 2
+            
+        temp = []
+        print("prev bet ", prev_bet)
+        for i in range(1, k+1):
+            if data_ingame[i] == 1:
+                temp.append(data_bets[i])
+        temp.sort()
+        if len(temp) > 1:
+            if temp[0] != temp[-1] or temp[0] < prev_bet or temp[-1] < prev_bet:
+                f = False
+        if len(temp) == 1 :
+            if temp[0] < prev_bet:
+                f = False
+        if s < s_players:
+            f = False
+        if data_ingame.count(1) < 2:
+            if len(temp) > 0:
+                if temp[0] == prev_bet:
+                    f1 = True
+            
+    print(data_ingame)
+    print(data_chips)
+    print(data_bets)
+    data_pots = exchange(data_pots, data_bets, data_ingame, k)
+    print(data_pots)
+            
+    ############################# TURN #########################
+    print("---------------------- TURN -----------------")
+    print(data_cards[k*2 + 3])
+    
+    for i in range(1, k + 1):
+        data_ingame[i] = data_pots[0][i]
+    print('Ваша вероятность победы: ', win_prob_turn(k, data_cards, data_ingame))
+    data_turn = []
+    data_turn.extend(data_flop)
+    data_turn.append(data_cards[k*2 + 3])
+    
+    prev_bet = 0
+    bet = blind*2
+    f = False
+    next_move = dealer_pos
+    data_bets = [0]*(k + 1)
+    s = 0
+    s_players = data_ingame.count(1)
+    while f == False and f1 == False:
+        f = True
+        next_move = next_move + 1
+        if next_move == k + 1:       
+            next_move = 1
+        if data_ingame[next_move] == 1:
+            s += 1
+            if next_move != 1:
+                t = bot_turn(data_cards[next_move*2 - 2], data_cards[next_move*2-1], data_turn, bet, prev_bet, data_chips[next_move], data_bets[next_move])
+                if t == 0 and prev_bet != 0:
+                    data_ingame[next_move] = 0
+                else:
+                    data_chips[next_move] -= (t - data_bets[next_move])
+                    if t - prev_bet > 0:
+                        if t - prev_bet >= bet:
+                            bet = t - prev_bet
+                        prev_bet = t
+                    data_bets[next_move] = t
+                    if data_chips[next_move] == 0:
+                        data_ingame[next_move] = 2
+                print(next_move, t, data_chips[next_move], data_bets[next_move])
+                print(data_ingame)
+            if next_move == 1:
+                print("у вас имеется ", data_chips[next_move], " фишек. Чтобы уровнять, нужно еще поствить ", prev_bet - data_bets[1], ". Поднимать можно от ", bet + prev_bet, " фишек")
+                t = int(input("Введите ставку "))
+                if t == 0 and prev_bet != 0:
+                    data_ingame[next_move] = 0
+                else:
+                    data_chips[next_move] -= t
+                    if t + data_bets[next_move] - prev_bet > 0:
+                        if t + data_bets[next_move] - prev_bet >= bet:
+                            bet = t + data_bets[next_move] - prev_bet
+                        prev_bet = t + data_bets[next_move]
+                    data_bets[next_move] += t
+                    if data_chips[next_move] == 0:
+                        data_ingame[next_move] = 2
+            
+        temp = []
+        print("prev bet ", prev_bet)
+        for i in range(1, k+1):
+            if data_ingame[i] == 1:
+                temp.append(data_bets[i])
+        temp.sort()
+        if len(temp) > 1:
+            if temp[0] != temp[-1] or temp[0] < prev_bet or temp[-1] < prev_bet:
+                f = False
+        if len(temp) == 1 :
+            if temp[0] < prev_bet:
+                f = False
+        if s < s_players:
+            f = False
+        if data_ingame.count(1) < 2:
+            if len(temp) > 0:
+                if temp[0] == prev_bet:
+                    f1 = True
+
+    
+    print(data_ingame)
+    print(data_chips)
+    print(data_bets)
+    data_pots = exchange(data_pots, data_bets, data_ingame, k)
+    print(data_pots)
+    
+    ############################# RIVER #########################
+    print("---------------------- RIVER -----------------")
+    print(data_cards[k*2 + 4])
+    
+    for i in range(1, k + 1):
+        data_ingame[i] = data_pots[0][i]
+    
+    data_reaver = []
+    data_reaver.extend(data_turn)
+    data_reaver.append(data_cards[k*2 + 3])
+    
+    prev_bet = 0
+    bet = blind*2
+    f = False
+    next_move = dealer_pos
+    data_bets = [0]*(k + 1)
+    s = 0
+    s_players = data_ingame.count(1)
+    while f == False and f1 == False:
+        f = True
+        next_move = next_move + 1
+        if next_move == k + 1:       
+            next_move = 1
+        if data_ingame[next_move] == 1:
+            s += 1
+            if next_move != 1:
+                t = bot_reaver(data_cards[next_move*2 - 2], data_cards[next_move*2-1], data_reaver, bet, prev_bet, data_chips[next_move], data_bets[next_move])
+                if t == 0 and prev_bet != 0:
+                    data_ingame[next_move] = 0
+                else:
+                    data_chips[next_move] -= (t - data_bets[next_move])
+                    if t - prev_bet > 0:
+                        if t - prev_bet >= bet:
+                            bet = t - prev_bet
+                        prev_bet = t
+                    data_bets[next_move] = t
+                    if data_chips[next_move] == 0:
+                        data_ingame[next_move] = 2
+                print(next_move, t, data_chips[next_move], data_bets[next_move])
+                print(data_ingame)
+            if next_move == 1:
+                print("у вас имеется ", data_chips[next_move], " фишек. Чтобы уровнять, нужно еще поствить ", prev_bet - data_bets[1], ". Поднимать можно от ", bet + prev_bet, " фишек")
+                t = int(input("Введите ставку "))
+                if t == 0 and prev_bet != 0:
+                    data_ingame[next_move] = 0
+                else:
+                    data_chips[next_move] -= t
+                    if t + data_bets[next_move] - prev_bet > 0:
+                        if t + data_bets[next_move] - prev_bet >= bet:
+                            bet = t + data_bets[next_move] - prev_bet
+                        prev_bet = t + data_bets[next_move]
+                    data_bets[next_move] += t
+                    if data_chips[next_move] == 0:
+                        data_ingame[next_move] = 2
+            
+        temp = []
+        print("prev bet ", prev_bet)
+        for i in range(1, k+1):
+            if data_ingame[i] == 1:
+                temp.append(data_bets[i])
+        temp.sort()
+        if len(temp) > 1:
+            if temp[0] != temp[-1] or temp[0] < prev_bet or temp[-1] < prev_bet:
+                f = False
+        if len(temp) == 1 :
+            if temp[0] < prev_bet:
+                f = False
+        if s < s_players:
+            f = False
+        if data_ingame.count(1) < 2:
+            if len(temp) > 0:
+                if temp[0] == prev_bet:
+                    f1 = True
+            
+    print(data_ingame)
+    print(data_chips)
+    print(data_bets)
+    data_pots = exchange(data_pots, data_bets, data_ingame, k)
+    print(data_pots)
+    print("==============================================")
+    data_pots = after_exchange(data_pots, data_bets, data_ingame, k)
+    print(data_pots)
+    print("==============================================")
+    print("==============================================")
+    data_win = [0]
+    for i in range(1, k+1):
+        data_win.append(winner(i, data_cards, k))
+    k_pots = 0
+    for i in data_pots[1:]:
+        kk = 0
+        if i.count(0) < k:
+            m = 0
+            for j in range(1, k + 1):
+                if i[j] == 1:
+                    if data_win[j] > m:
+                        m = data_win[j]
+            for j in range(1, k + 1):
+                if i[j] == 1:
+                    if data_win[j] == m:
+                        kk += 1
+            for j in range(1, k+1):
+                if i[j] == 1:
+                    if data_win[j] == m:
+                        data_chips[j] += i[0] // kk
+                        t = "Player " + str(j) + " wins " + str(i[0] // kk) + " chips!!!"
+                        print(t)
+    
+    print(data_chips)
+    #if g > 10:
+        #break
