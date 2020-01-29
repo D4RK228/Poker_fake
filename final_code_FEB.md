@@ -1,3 +1,6 @@
+
+Ссылка на скринкаст: https://youtu.be/2ohxgG3biok
+
 ``` python
 from random import random
 from tkinter import *
